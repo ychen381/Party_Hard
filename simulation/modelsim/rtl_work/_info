@@ -1,0 +1,61 @@
+m255
+K4
+z2
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+Z0 dC:/Users/Jackliu016/Desktop/lab8/simulation/modelsim
+vpolice_car_RAM
+Z1 DXx6 sv_std 3 std 0 22 AD7iAPLo6nTIKk<N0eo=D3
+Z2 !s110 1512080751
+!i10b 1
+!s100 KcR9WLazNEIaRm`ahn=Qz1
+I?4H4O9Ve_cj5_i@@J7e]83
+Z3 VDg1SIo80bB@j0V0VzS_@n1
+!s105 police_car_RAM_sv_unit
+S1
+R0
+w1512080027
+8C:/Users/Jackliu016/Desktop/lab8/police_car_RAM.sv
+FC:/Users/Jackliu016/Desktop/lab8/police_car_RAM.sv
+L0 7
+Z4 OV;L;10.5b;63
+r1
+!s85 0
+31
+Z5 !s108 1512080751.000000
+!s107 C:/Users/Jackliu016/Desktop/lab8/police_car_RAM.sv|
+!s90 -reportprogress|300|-sv|-work|work|+incdir+C:/Users/Jackliu016/Desktop/lab8|C:/Users/Jackliu016/Desktop/lab8/police_car_RAM.sv|
+!i113 1
+Z6 o-sv -work work
+Z7 !s92 -sv -work work +incdir+C:/Users/Jackliu016/Desktop/lab8
+Z8 tCvgOpt 0
+npolice_car_@r@a@m
+vtestbench
+R1
+R2
+!i10b 1
+!s100 0_:49O:D`jOY_f@HiL^0H1
+INF:37YBS8djA_V:j:;Wo:1
+R3
+!s105 testbench_sv_unit
+S1
+R0
+w1512080081
+8C:/Users/Jackliu016/Desktop/lab8/testbench.sv
+FC:/Users/Jackliu016/Desktop/lab8/testbench.sv
+L0 1
+R4
+r1
+!s85 0
+31
+R5
+!s107 C:/Users/Jackliu016/Desktop/lab8/testbench.sv|
+!s90 -reportprogress|300|-sv|-work|work|+incdir+C:/Users/Jackliu016/Desktop/lab8|C:/Users/Jackliu016/Desktop/lab8/testbench.sv|
+!i113 1
+R6
+R7
+R8

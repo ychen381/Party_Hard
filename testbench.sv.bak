@@ -1,0 +1,8 @@
+module testbench()
+
+timeunit 10ns;
+timeprecision 1ns;
+
+logic [18:0] read_address;
+logic clk;
+logic [4:0] data_out;

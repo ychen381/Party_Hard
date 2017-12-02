@@ -1,0 +1,28 @@
+module palette_yiquan(input [4:0] index, output logic [23:0] RGB);	
+
+always_comb
+	begin  
+		unique case (index)
+			4'h0 		: RGB = 24'h800080;
+			4'h1 		: RGB = 24'hfccfcc;
+			4'h2 		: RGB = 24'hcfebfe;
+			4'h3 		: RGB = 24'hd7ecfe;
+			4'h4 		: RGB = 24'he0f1ff;
+			4'h5 		: RGB = 24'hfff3ec;
+			4'h6 		: RGB = 24'hfdfdfd;
+			4'h7     : RGB = 24'h1b1b1b;
+			4'h8     : RGB = 24'hf81d12;
+			4'h9     : RGB = 24'hebd1c4;
+			4'ha     : RGB = 24'heed4c7;
+			4'hb     : RGB = 24'h2b1b09;
+			4'hc     : RGB = 24'hffbf80;
+			4'hd     : RGB = 24'hffe78d;
+			4'he     : RGB = 24'hfafecb;
+			4'hf     : RGB = 24'hc0e1fc;
+			4'h10    : RGB = 24'h996633;
+			4'h11    : RGB = 24'hffcc66;
+			default  : RGB = 24'h000000;
+			
+		endcase
+	end
+endmodule	
