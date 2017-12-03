@@ -17,7 +17,7 @@ logic [4:0] mem [0:1399];
 
 initial
 begin
-	 $readmemh("C:/Users/Jackliu016/Desktop/lab8/police.txt", mem);
+	 $readmemh("C:/Users/Jackliu016/Documents/GitHub/Party_Hard/police.txt", mem);
 end
 
 

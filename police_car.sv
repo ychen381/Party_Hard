@@ -20,17 +20,19 @@ module  police_car ( input         Clk,                // 50 MHz clock
                              frame_clk,          // The clock indicating a new frame (~60Hz)
                input [9:0]   DrawX, DrawY,       // Current pixel coordinates
             // Whether current pixel belongs to ball or backgroun
-					output[9:0]  ballX, ballY
+					input reached,
+					output[9:0]  ballX, ballY,
+					output police_out
               );
     
-    parameter [9:0] Ball_X_Center=675;  // Center position on the X axis
+    parameter [9:0] Ball_X_Center=676;  // Center position on the X axis
     parameter [9:0] Ball_Y_Center=450;  // Center position on the Y axis
     parameter [9:0] Ball_X_Min=100;       // Leftmost point on the X axis
     parameter [9:0] Ball_X_Max=400;     // Rightmost point on the X axis
     parameter [9:0] Ball_Y_Min=200;       // Topmost point on the Y axis
     parameter [9:0] Ball_Y_Max=300;     // Bottommost point on the Y axis
-    parameter [9:0] Ball_X_Step=1;      // Step size on the X axis
-    parameter [9:0] Ball_Y_Step=1;      // Step size on the Y axis
+    parameter [9:0] Ball_X_Step=2;      // Step size on the X axis
+    parameter [9:0] Ball_Y_Step=2;      // Step size on the Y axis
     parameter [9:0] Ball_Size=4;        // Ball size
     
     logic [9:0] Ball_X_Pos, Ball_X_Motion, Ball_Y_Pos, Ball_Y_Motion;
@@ -63,6 +65,11 @@ module  police_car ( input         Clk,                // 50 MHz clock
             Ball_X_Motion <= 10'd0;
             Ball_Y_Motion <= 10'd0;
         end
+		  else if(Ball_X_Pos == 320)
+		  begin
+				Ball_X_Motion <= 0;
+				Ball_Y_Motion <= 0;
+		  end
         else if (frame_clk_rising_edge && killed)        // Update only at rising edge of frame clock
         begin
             Ball_X_Pos <= Ball_X_Pos_in;
@@ -75,8 +82,13 @@ module  police_car ( input         Clk,                // 50 MHz clock
 	 
 	 always_comb
 	 begin
+		police_out = 0;
 		if(killed)
 		begin
+			if(Ball_X_Pos == 10'd320 && reached == 0)
+			begin
+				police_out = 1;
+			end
 			Ball_Y_Motion_in = 0;
 			Ball_X_Motion_in = (~(Ball_X_Step) + 1'b1);
 		end
@@ -91,7 +103,8 @@ module  police_car ( input         Clk,                // 50 MHz clock
     always_comb
     begin
         // Update the ball's position with its motion
-        Ball_X_Pos_in = Ball_X_Pos + Ball_X_Motion;
+		  
+		  Ball_X_Pos_in = Ball_X_Pos + Ball_X_Motion;
         Ball_Y_Pos_in = Ball_Y_Pos + Ball_Y_Motion;
     
         // By default, keep motion unchanged

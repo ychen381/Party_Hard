@@ -124,6 +124,10 @@ module lab8( input               CLOCK_50,
 	 logic [9:0]ballX, ballY, personA_X, personA_Y, police_car_X, police_car_Y;
 	 logic attack_out;
 	 logic personA_killed;
+	 logic police_out; 
+	 logic [9:0]police_X, police_Y;
+	 logic [9:0]death_X, death_Y;
+	 logic collected;
     
     // TODO: Fill in the connections for the rest of the modules 
     VGA_controller vga_controller_instance(.Clk(Clk), .Reset(Reset_h), .VGA_HS(VGA_HS), 
@@ -137,13 +141,18 @@ module lab8( input               CLOCK_50,
     color_mapper color_instance(.Reset(~KEY[3]), .personA_X(personA_X), .personA_Y(personA_Y), .attack_out(attack_out), 
 	 .left_out(left_out), .Clk(Clk), .ballX(ballX), .ballY(ballY), .DrawX(X), .DrawY(Y), .VGA_R(VGA_R), 
 	 .VGA_B(VGA_B), .VGA_G(VGA_G), .personA_killed(personA_killed), .police_car_X(police_car_X), 
-	 .police_car_Y(police_car_Y));
+	 .police_car_Y(police_car_Y), .police_X(police_X), .police_Y(police_Y), .police_out(police_out),
+	 .death_X(death_X), .death_Y(death_Y), .collected(collected),.reached(reached));
     
 	 personA personA_instance(.Clk(Clk), .Reset(~KEY[3]), .DrawX(X), .DrawY(Y), .frame_clk(VGA_VS), 
 	 .ballX(personA_X), .ballY(personA_Y), .killed(personA_killed));
 	 
 	 police_car police_car_instance(.Clk(Clk), .Reset(~KEY[3]), .DrawX(X), .DrawY(Y), .frame_clk(VGA_VS), 
-	 .ballX(police_car_X), .ballY(police_car_Y), .killed(personA_killed));
+	 .ballX(police_car_X), .ballY(police_car_Y), .killed(personA_killed), .police_out(police_out),.reached(reached));
+	 
+	 police police_instance(.Clk(Clk), .Reset(~KEY[3]), .DrawX(X), .DrawY(Y), .frame_clk(VGA_VS), 
+	 .ballX(police_X), .ballY(police_Y), .police_out(police_out), .dead_X(death_X), .dead_Y(death_Y),
+	 .collected(collected),.reached(reached));
 	 
     // Display keycode on hex display
     HexDriver hex_inst_0 (keycode[3:0], HEX0);

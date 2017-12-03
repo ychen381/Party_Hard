@@ -3,10 +3,13 @@ module  color_mapper ( input Clk,          // Whether current pixel belongs to b
                                                               //   or background (computed in ball.sv)
                        input        [9:0] DrawX, DrawY,       // Current pixel coordinates
 							  input        [9:0] ballX, ballY, personA_X, personA_Y, police_car_X, police_car_Y,
+							  input        [9:0] police_X, police_Y,
 							  input        left_out, attack_out,
-							  input        Reset,
-                       output logic [7:0] VGA_R, VGA_G, VGA_B, // VGA RGB output
-							  output logic personA_killed
+							  input        Reset, police_out,
+							  input        collected,reached,
+                       output logic [7:0] VGA_R, VGA_G, VGA_B, // VGA RGB output							  
+							  output logic personA_killed,
+							  output logic [9:0] death_X, death_Y
                      );
     
     logic [7:0] Red, Green, Blue;
@@ -58,6 +61,16 @@ module  color_mapper ( input Clk,          // Whether current pixel belongs to b
 	 assign police_car_MemX = DrawX-(police_car_X-police_car_Width/2);
 	 assign police_car_MemY = DrawY-(police_car_Y-police_car_Height/2);
 	 
+	 //police_int
+	 int police_MemX, police_MemY;
+	 logic is_police;
+	 logic[7:0] police_Ram;
+	 logic[23:0] police_RGB;
+	 parameter [9:0] police_Width = 10'd20;
+	 parameter [9:0] police_Height = 10'd70;
+	 assign police_MemX = DrawX-(police_X-police_Width/2);
+	 assign police_MemY = DrawY-(police_Y-police_Height/2);
+	 
 	 
 	 //Read from on-chip memory
 	 frameRAM yiquan0(.read_address(yiMemY*yiWidth+yiMemX), .Clk(Clk), .data_Out(yiRam));
@@ -70,6 +83,8 @@ module  color_mapper ( input Clk,          // Whether current pixel belongs to b
 	 .Clk(Clk), .data_Out(personA_dead_Ram));
 	 police_car_RAM police_car0(.read_address(police_car_MemY*police_car_Width+police_car_MemX), 
 	 .Clk(Clk), .data_Out(police_car_RGB));
+	 policeRAM police0(.read_address(police_MemY*police_Width+police_MemX), 
+	 .Clk(Clk), .data_Out(police_Ram));
 	 
 	 //palette
 	 palette_yiquan yiquan1(.index(yiRam), .RGB(yiRGB));
@@ -79,6 +94,7 @@ module  color_mapper ( input Clk,          // Whether current pixel belongs to b
 	 palette_yiquan yiquanattackleft1(.index(yiattackleftRam), .RGB(yiattackleftRGB));
 	 palette_personA personA1(.index(personARam), .RGB(personARGB));
 	 palette_personA_dead personA_dead1(.index(personA_dead_Ram), .RGB(personA_dead_RGB));
+	 palette_police police1(.index(police_Ram), .RGB(police_RGB));
 	 
     
     // Output colors to VGA
@@ -107,12 +123,24 @@ module  color_mapper ( input Clk,          // Whether current pixel belongs to b
 	 
 	 always_comb
 	 begin
+			death_X = 10'd0;
+			death_Y = 10'd0;
+			if(personA_killed == 1'b1)
+			begin
+				death_X = personA_X;
+				death_Y = personA_Y;
+			end
+	 end
+	 
+	 always_comb
+	 begin
 			is_ball = 1'b0;
 			is_ball_left = 1'b0;
 			is_ball_attack = 1'b0;
 			is_personA = 1'b0;
 			is_personA_killed = 1'b0;
 			is_police_car = 1'b0;
+			is_police = 1'b0;
 			if(DrawX >= ballX - 10'd20 && DrawX <= ballX + 10'd20 && DrawY >= ballY - 10'd30 && DrawY<=ballY+10'd30
 			&& yiRGB != 24'h800080 && left_out == 1'b0 && attack_out == 1'b0)
 			begin
@@ -148,7 +176,7 @@ module  color_mapper ( input Clk,          // Whether current pixel belongs to b
 				//is_personA_killed = 1'b0;
 			end
 			if(DrawX >= personA_X - 10'd30 && DrawX <= personA_X + 10'd30 && DrawY >= personA_Y - 10'd5 && DrawY<=personA_Y+10'd5
-			&& personA_dead_RGB != 24'h800080 && personA_killed == 1'b1)
+			&& personA_dead_RGB != 24'h800080 && personA_killed == 1'b1 && collected == 0)
 			begin
 				is_personA_killed = 1'b1;
 			end
@@ -156,6 +184,12 @@ module  color_mapper ( input Clk,          // Whether current pixel belongs to b
 			DrawY >= police_car_Y - 10'd14 && DrawY<=police_car_Y+10'd14 && police_car_RGB != 24'h000000)
 			begin
 				is_police_car = 1'b1;
+			end
+			if(DrawX >= police_X - 10'd10 && DrawX <= police_X + 10'd10 && 
+			DrawY >= police_Y - 10'd35 && DrawY<=police_Y+10'd35 && police_RGB != 24'h800080 && 
+			police_out == 1'b1 && reached==0)
+			begin
+				is_police = 1'b1;
 			end
 			
 	 end
@@ -208,6 +242,12 @@ module  color_mapper ( input Clk,          // Whether current pixel belongs to b
 					Red = police_car_RGB[23:16];
 					Green = police_car_RGB[15:8];
 					Blue = police_car_RGB[7:0];
+				end
+				else if(is_police == 1'b1)
+				begin
+					Red = police_RGB[23:16];
+					Green = police_RGB[15:8];
+					Blue = police_RGB[7:0];
 				end
 				else
 				begin
