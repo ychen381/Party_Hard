@@ -30,8 +30,8 @@ module  ball ( input         Clk,                // 50 MHz clock
     parameter [9:0] Ball_X_Max=639;     // Rightmost point on the X axis
     parameter [9:0] Ball_Y_Min=0;       // Topmost point on the Y axis
     parameter [9:0] Ball_Y_Max=479;     // Bottommost point on the Y axis
-    parameter [9:0] Ball_X_Step=1.5;      // Step size on the X axis
-    parameter [9:0] Ball_Y_Step=1.5;      // Step size on the Y axis
+    parameter [9:0] Ball_X_Step=1;      // Step size on the X axis
+    parameter [9:0] Ball_Y_Step=1;      // Step size on the Y axis
     parameter [9:0] Ball_X_Size=15;        // Ball size
 	 parameter [9:0] Ball_Y_Size=28;
     
@@ -148,6 +148,77 @@ module  ball ( input         Clk,                // 50 MHz clock
 				begin
 				Ball_X_Motion_in = Ball_X_Step;
 				Ball_Y_Motion_in = 0;
+				end
+				
+			else if(Ball_X_Pos+15 == 184 && ((Ball_Y_Pos-28<=250 && Ball_Y_Pos-28>=66) || (Ball_Y_Pos+28<=250 && Ball_Y_Pos+28>=66)
+			|| (Ball_Y_Pos<=250 && Ball_Y_Pos>=66)))
+				begin
+				Ball_X_Motion_in = (~(Ball_X_Step) + 1'b1);
+				Ball_Y_Motion_in = 0;
+				end
+			else if(Ball_X_Pos-15 == 191 && ((Ball_Y_Pos-28<=250 && Ball_Y_Pos-28>=66) || (Ball_Y_Pos+28<=250 && Ball_Y_Pos+28>=66)
+			|| (Ball_Y_Pos<=250 && Ball_Y_Pos>=66)))
+				begin
+				Ball_X_Motion_in = Ball_X_Step;
+				Ball_Y_Motion_in = 0;
+				end
+			else if (Ball_Y_Pos-28 == 250 && Ball_X_Pos-15<=191 && Ball_X_Pos+15>=184)
+				begin
+				Ball_X_Motion_in =0;
+				Ball_Y_Motion_in =Ball_Y_Step;
+				end
+			else if(Ball_Y_Pos+28 ==66 && Ball_X_Pos-15<=191 && Ball_X_Pos+15>=184)
+				begin
+				Ball_X_Motion_in = 0;
+				Ball_Y_Motion_in = (~(Ball_Y_Step) + 1'b1);
+				end
+				
+				
+			else if(Ball_X_Pos+15 == 184 && ((Ball_Y_Pos-28<=72 && Ball_Y_Pos-28>=66) || (Ball_Y_Pos+28<=72 && Ball_Y_Pos+28>=66)
+			|| (Ball_Y_Pos<=72 && Ball_Y_Pos>=66)))
+				begin
+				Ball_X_Motion_in = (~(Ball_X_Step) + 1'b1);
+				Ball_Y_Motion_in = 0;
+				end
+			else if(Ball_X_Pos-15 == 412 && ((Ball_Y_Pos-28<=72 && Ball_Y_Pos-28>=66) || (Ball_Y_Pos+28<=72 && Ball_Y_Pos+28>=66)
+			|| (Ball_Y_Pos<=72 && Ball_Y_Pos>=66)))
+				begin
+				Ball_X_Motion_in = Ball_X_Step;
+				Ball_Y_Motion_in = 0;
+				end
+			else if (Ball_Y_Pos-28 == 72 && Ball_X_Pos-15<=412 && Ball_X_Pos+15>=184)
+				begin
+				Ball_X_Motion_in =0;
+				Ball_Y_Motion_in =Ball_Y_Step;
+				end
+			else if(Ball_Y_Pos+28 ==66 && Ball_X_Pos-15<=412 && Ball_X_Pos+15>=184)
+				begin
+				Ball_X_Motion_in = 0;
+				Ball_Y_Motion_in = (~(Ball_Y_Step) + 1'b1);
+				end
+				
+			
+			else if(Ball_X_Pos+15 == 412 && ((Ball_Y_Pos-28<=250 && Ball_Y_Pos-28>=66) || (Ball_Y_Pos+28<=250 && Ball_Y_Pos+28>=66)
+			|| (Ball_Y_Pos<=250 && Ball_Y_Pos>=66)))
+				begin
+				Ball_X_Motion_in = (~(Ball_X_Step) + 1'b1);
+				Ball_Y_Motion_in = 0;
+				end
+			else if(Ball_X_Pos-15 == 415 && ((Ball_Y_Pos-28<=250 && Ball_Y_Pos-28>=66) || (Ball_Y_Pos+28<=250 && Ball_Y_Pos+28>=66)
+			|| (Ball_Y_Pos<=250 && Ball_Y_Pos>=66)))
+				begin
+				Ball_X_Motion_in = Ball_X_Step;
+				Ball_Y_Motion_in = 0;
+				end
+			else if (Ball_Y_Pos-28 == 250 && Ball_X_Pos-15<=415 && Ball_X_Pos+15>=412)
+				begin
+				Ball_X_Motion_in =0;
+				Ball_Y_Motion_in =Ball_Y_Step;
+				end
+			else if(Ball_Y_Pos+28 ==66 && Ball_X_Pos-15<=415 && Ball_X_Pos+15>=412)
+				begin
+				Ball_X_Motion_in = 0;
+				Ball_Y_Motion_in = (~(Ball_Y_Step) + 1'b1);
 				end
 			
         
