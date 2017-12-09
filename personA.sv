@@ -18,17 +18,21 @@ module  personA ( input         Clk,                // 50 MHz clock
                              Reset,              // Active-high reset signal
 									  killed,
                              frame_clk,          // The clock indicating a new frame (~60Hz)
+									  left,
+									  corpse_discovered,
                input [9:0]   DrawX, DrawY,       // Current pixel coordinates
             // Whether current pixel belongs to ball or backgroun
-					output[9:0]  ballX, ballY
+					output[9:0]  ballX, ballY,
+					output police_needed
+					
               );
     
-    parameter [9:0] Ball_X_Center=350;  // Center position on the X axis
+    parameter [9:0] Ball_X_Center=400;  // Center position on the X axis
     parameter [9:0] Ball_Y_Center=250;  // Center position on the Y axis
     parameter [9:0] Ball_X_Min=100;       // Leftmost point on the X axis
     parameter [9:0] Ball_X_Max=400;     // Rightmost point on the X axis
     parameter [9:0] Ball_Y_Min=200;       // Topmost point on the Y axis
-    parameter [9:0] Ball_Y_Max=300;     // Bottommost point on the Y axis
+    parameter [9:0] Ball_Y_Max=250;     // Bottommost point on the Y axis
     parameter [9:0] Ball_X_Step=1;      // Step size on the X axis
     parameter [9:0] Ball_Y_Step=1;      // Step size on the Y axis
     parameter [9:0] Ball_Size=4;        // Ball size
@@ -44,6 +48,79 @@ module  personA ( input         Clk,                // 50 MHz clock
     assign Size = Ball_Size;
 	 assign ballX = Ball_X_Pos;
 	 assign ballY = Ball_Y_Pos;
+	 logic wander_logic, not_moving_logic;
+	 
+	 enum logic [4:0] {wander, not_moving, discover_corpse, call_police, dead} State, Next_state;
+	 
+	 always_ff @ (posedge Clk)
+	 begin: Assign_Next_State
+			if(Reset)
+				State <= not_moving;
+			else
+				State <= Next_state;
+	 end
+	 
+	 always_comb
+	 begin
+			Next_state = State;
+			
+			unique case(State)
+			not_moving: 
+				Next_state = wander;
+			wander:
+				if(killed)
+					Next_state = dead;
+				else if(corpse_discovered)
+					Next_state = discover_corpse;
+				else
+					Next_state = wander;
+			dead:
+				Next_state = dead;
+			discover_corpse:
+				if(killed)
+					Next_state = dead;
+				else
+					Next_state = call_police;
+			call_police:
+				if(left)
+					Next_state = wander;
+				else
+					Next_state = call_police;
+			default:;
+			endcase
+	 end
+	 
+	 always_comb
+	 begin
+			not_moving_logic = 0;
+			wander_logic = 0;
+			police_needed = 0;
+			
+			case(State)
+				not_moving:
+					begin
+						not_moving_logic = 1;
+					end
+				wander:
+					begin
+						wander_logic = 1;
+					end
+				discover_corpse:
+					begin
+						not_moving_logic = 1;
+					end
+				dead:
+					begin
+						not_moving_logic = 1;
+					end
+				call_police:
+					begin
+						not_moving_logic = 1;
+						police_needed = 1;
+					end
+			endcase
+		end
+			
     
     //////// Do not modify the always_ff blocks. ////////
     // Detect rising edge of frame_clk
@@ -63,11 +140,11 @@ module  personA ( input         Clk,                // 50 MHz clock
             Ball_X_Motion <= 10'd0;
             Ball_Y_Motion <= Ball_Y_Step;
         end
-		  else if (killed)
+		  /*else if (killed)
 		  begin
 				Ball_X_Motion <= 10'd0;
 				Ball_Y_Motion <= 10'd0;
-		  end
+		  end*/
         else if (frame_clk_rising_edge)        // Update only at rising edge of frame clock
         begin
             Ball_X_Pos <= Ball_X_Pos_in;
@@ -86,37 +163,40 @@ module  personA ( input         Clk,                // 50 MHz clock
         Ball_Y_Pos_in = Ball_Y_Pos + Ball_Y_Motion;
     
         // By default, keep motion unchanged
-        Ball_X_Motion_in = Ball_X_Motion;
-        Ball_Y_Motion_in = Ball_Y_Motion;
-        
-        // Be careful when using comparators with "logic" datatype because compiler treats 
-        //   both sides of the operator UNSIGNED numbers. (unless with further type casting)
-        // e.g. Ball_Y_Pos - Ball_Size <= Ball_Y_Min 
-        // If Ball_Y_Pos is 0, then Ball_Y_Pos - Ball_Size will not be -4, but rather a large positive number.
-        if( Ball_Y_Pos + Ball_Size >= Ball_Y_Max )  // Ball is at the bottom edge, BOUNCE!
-            Ball_Y_Motion_in = (~(Ball_Y_Step) + 1'b1);  // 2's complement.  
-        else if ( Ball_Y_Pos <= Ball_Y_Min + Ball_Size )  // Ball is at the top edge, BOUNCE!
-            Ball_Y_Motion_in = Ball_Y_Step;
-        
-        // TODO: Add other boundary conditions and handle keypress here.
-        
-    /**************************************************************************************
-        ATTENTION! Please answer the following quesiton in your lab report! Points will be allocated for the answers!
-        Hidden Question #2/2:
-          Notice that Ball_Y_Pos is updated using Ball_Y_Motion. 
-          Will the new value of Ball_Y_Motion be used when Ball_Y_Pos is updated, or the old? 
-          What is the difference between writing
-            "Ball_Y_Pos_in = Ball_Y_Pos + Ball_Y_Motion;" and 
-            "Ball_Y_Pos_in = Ball_Y_Pos + Ball_Y_Motion_in;"?
-          How will this impact behavior of the ball during a bounce, and how might that interact with a response to a keypress?
-          Give an answer in your Post-Lab.
-    **************************************************************************************/
-        
-        // Compute whether the pixel corresponds to ball or background
-        
-        /* The ball's (pixelated) circle is generated using the standard circle formula.  Note that while 
-           the single line is quite powerful descriptively, it causes the synthesis tool to use up three
-           of the 12 available multipliers on the chip! */
+		  Ball_X_Motion_in = Ball_X_Motion;
+		  Ball_Y_Motion_in = Ball_Y_Motion;
+		  
+		  if(not_moving_logic)
+		  begin
+				Ball_X_Motion_in = 0;
+				Ball_Y_Motion_in = 0;
+		  end
+		  
+		  if(wander_logic)
+		  begin
+				if(Ball_X_Pos == Ball_X_Max && Ball_Y_Pos < Ball_Y_Max )  // Ball is at the bottom edge, BOUNCE!
+				begin
+					Ball_Y_Motion_in = 1;
+					Ball_X_Motion_in = 0;
+				end
+				else if(Ball_X_Pos > Ball_X_Min && Ball_Y_Pos == Ball_Y_Max)
+				begin
+					Ball_X_Motion_in = (~(Ball_X_Step) + 1'b1);  // 2's complement. 
+					Ball_Y_Motion_in = 0;
+				end
+				else if(Ball_X_Pos == Ball_X_Min && Ball_Y_Pos > Ball_Y_Min)
+				begin
+					Ball_X_Motion_in = 0;
+					Ball_Y_Motion_in = (~(Ball_Y_Step) + 1'b1);
+				end
+				else if(Ball_Y_Pos == Ball_Y_Min && Ball_X_Pos < Ball_X_Max)
+				begin
+					Ball_X_Motion_in = 1;
+					Ball_Y_Motion_in = 0;
+				end
+				
+				
+		  end
         
     end
     
