@@ -1,61 +1,39 @@
-//-------------------------------------------------------------------------
-//    Ball.sv                                                            --
-//    Viral Mehta                                                        --
-//    Spring 2005                                                        --
-//                                                                       --
-//    Modified by Stephen Kempf 03-01-2006                               --
-//                              03-12-2007                               --
-//    Translated by Joe Meng    07-07-2013                               --
-//    Modified by Po-Han Huang  10-06-2017                               --
-//    Fall 2017 Distribution                                             --
-//                                                                       --
-//    For use with ECE 385 Lab 8                                         --
-//    UIUC ECE Department                                                --
-//-------------------------------------------------------------------------
-
-
-module  personA ( input         Clk,                // 50 MHz clock
+module personA ( input         Clk,                // 50 MHz clock
                              Reset,              // Active-high reset signal
-									  killed,
-                             frame_clk,          // The clock indicating a new frame (~60Hz)
-									  left,
-									  corpse_discovered,
-               input [9:0]   DrawX, DrawY,       // Current pixel coordinates
+									  is_killed,
+                             frame_clk,
+									  reset_corpse,
+									  complete,
+						   input[9:0] death_X, death_Y,
             // Whether current pixel belongs to ball or backgroun
-					output[9:0]  ballX, ballY,
-					output police_needed
+					output[9:0]  personA_X, personA_Y,
+					output logic police_needed_A
 					
               );
     
-    parameter [9:0] Ball_X_Center=400;  // Center position on the X axis
-    parameter [9:0] Ball_Y_Center=250;  // Center position on the Y axis
-    parameter [9:0] Ball_X_Min=100;       // Leftmost point on the X axis
-    parameter [9:0] Ball_X_Max=400;     // Rightmost point on the X axis
-    parameter [9:0] Ball_Y_Min=200;       // Topmost point on the Y axis
-    parameter [9:0] Ball_Y_Max=250;     // Bottommost point on the Y axis
-    parameter [9:0] Ball_X_Step=1;      // Step size on the X axis
-    parameter [9:0] Ball_Y_Step=1;      // Step size on the Y axis
-    parameter [9:0] Ball_Size=4;        // Ball size
+    parameter [9:0] personA_X_Center=400;  // Center position on the X axis
+    parameter [9:0] personA_Y_Center=250;  // Center position on the Y axis
+    parameter [9:0] personA_X_Min=100;       // Leftmost point on the X axis
+    parameter [9:0] personA_X_Max=400;     // Rightmost point on the X axis
+    parameter [9:0] personA_Y_Min=200;       // Topmost point on the Y axis
+    parameter [9:0] personA_Y_Max=250;     // Bottommost point on the Y axis
+    parameter [9:0] personA_X_Step=1;      // Step size on the X axis
+    parameter [9:0] personA_Y_Step=1;      // Step size on the Y axis
     
-    logic [9:0] Ball_X_Pos, Ball_X_Motion, Ball_Y_Pos, Ball_Y_Motion;
-    logic [9:0] Ball_X_Pos_in, Ball_X_Motion_in, Ball_Y_Pos_in, Ball_Y_Motion_in;
+    logic [9:0] personA_X_Pos, personA_X_Motion, personA_Y_Pos, personA_Y_Motion;
+    logic [9:0] personA_X_Pos_in, personA_X_Motion_in, personA_Y_Pos_in, personA_Y_Motion_in;
     
     /* Since the multiplicants are required to be signed, we have to first cast them
        from logic to int (signed by default) before they are multiplied. */
-    int DistX, DistY, Size;
-    assign DistX = DrawX - Ball_X_Pos;
-    assign DistY = DrawY - Ball_Y_Pos;
-    assign Size = Ball_Size;
-	 assign ballX = Ball_X_Pos;
-	 assign ballY = Ball_Y_Pos;
-	 logic wander_logic, not_moving_logic;
+	 assign personA_X = personA_X_Pos;
+	 assign personA_Y = personA_Y_Pos;
 	 
-	 enum logic [4:0] {wander, not_moving, discover_corpse, call_police, dead} State, Next_state;
+	 enum logic [2:0] {reset, wander, call_police, dead, corpse_removed} State, Next_state;
 	 
 	 always_ff @ (posedge Clk)
 	 begin: Assign_Next_State
 			if(Reset)
-				State <= not_moving;
+				State <= reset;
 			else
 				State <= Next_state;
 	 end
@@ -65,59 +43,93 @@ module  personA ( input         Clk,                // 50 MHz clock
 			Next_state = State;
 			
 			unique case(State)
-			not_moving: 
+			reset: 
 				Next_state = wander;
 			wander:
-				if(killed)
+				if(is_killed == 1'b1)
 					Next_state = dead;
-				else if(corpse_discovered)
-					Next_state = discover_corpse;
+				else if(death_X <= personA_X_Pos + 10'd32 && death_Y <= personA_Y_Pos + 10'd15
+			&& death_Y >= personA_Y_Pos - 10'd15 && death_X >= personA_X_Pos - 10'd32)
+					Next_state = call_police;
 				else
 					Next_state = wander;
-			dead:
-				Next_state = dead;
-			discover_corpse:
-				if(killed)
-					Next_state = dead;
-				else
-					Next_state = call_police;
 			call_police:
-				if(left)
+				if(complete == 1'b1)
 					Next_state = wander;
 				else
 					Next_state = call_police;
+			dead:
+				if(reset_corpse == 1'b1)
+					Next_state = corpse_removed;
+				else
+					Next_state = dead;
+			corpse_removed:
+				Next_state = corpse_removed;
 			default:;
 			endcase
 	 end
 	 
 	 always_comb
 	 begin
-			not_moving_logic = 0;
-			wander_logic = 0;
-			police_needed = 0;
+			police_needed_A = 1'b0;
+			personA_X_Pos_in = personA_X_Pos + personA_X_Motion;
+         personA_Y_Pos_in = personA_Y_Pos + personA_Y_Motion;
+			personA_X_Motion_in = personA_X_Motion;
+		   personA_Y_Motion_in = personA_Y_Motion;
 			
 			case(State)
-				not_moving:
-					begin
-						not_moving_logic = 1;
-					end
+				Reset:
+				begin
+					personA_X_Motion_in = 1'b0;
+					personA_Y_Motion_in = 1'b0;
+					personA_X_Pos_in = personA_X_Center;
+					personA_Y_Pos_in = personA_Y_Center;
+				end
 				wander:
+				begin
+					if(personA_X_Pos == personA_X_Max && personA_Y_Pos < personA_Y_Max)  // Ball is at the bottom edge, BOUNCE!
 					begin
-						wander_logic = 1;
+						personA_Y_Motion_in = 1;
+						personA_X_Motion_in = 0;
+						personA_X_Pos_in = personA_X_Max;
 					end
-				discover_corpse:
+					else if(personA_X_Pos > personA_X_Min && personA_Y_Pos == personA_Y_Max)
 					begin
-						not_moving_logic = 1;
+						personA_X_Motion_in = (~(personA_X_Step) + 1'b1);  // 2's complement. 
+						personA_Y_Motion_in = 0;
+						personA_Y_Pos_in = personA_Y_Max;
 					end
-				dead:
+					else if(personA_X_Pos == personA_X_Min && personA_Y_Pos > personA_Y_Min)
 					begin
-						not_moving_logic = 1;
+						personA_X_Motion_in = 0;
+						personA_Y_Motion_in = (~(personA_Y_Step) + 1'b1);
+						personA_X_Pos_in = personA_X_Min;
 					end
+					else if(personA_Y_Pos == personA_Y_Min && personA_X_Pos < personA_X_Max)
+					begin
+						personA_X_Motion_in = 1;
+						personA_Y_Motion_in = 0;
+						personA_Y_Pos_in = personA_Y_Min;
+					end
+				end
 				call_police:
-					begin
-						not_moving_logic = 1;
-						police_needed = 1;
-					end
+				begin
+					police_needed_A = 1'b1;
+					personA_X_Motion_in = 1'b0;
+					personA_Y_Motion_in = 1'b0;
+				end
+				dead:
+				begin
+					personA_X_Motion_in = 1'b0;
+					personA_Y_Motion_in = 1'b0;
+				end
+				corpse_removed:
+				begin
+					personA_X_Motion_in = 1'b0;
+					personA_Y_Motion_in = 1'b0;
+					personA_X_Pos_in = 1'b0;
+					personA_Y_Pos_in = 1'b0;
+				end
 			endcase
 		end
 			
@@ -135,69 +147,19 @@ module  personA ( input         Clk,                // 50 MHz clock
     begin
         if (Reset)
         begin
-            Ball_X_Pos <= Ball_X_Center;
-            Ball_Y_Pos <= Ball_Y_Center;
-            Ball_X_Motion <= 10'd0;
-            Ball_Y_Motion <= Ball_Y_Step;
+            personA_X_Pos <= personA_X_Center;
+            personA_Y_Pos <= personA_Y_Center;
+            personA_X_Motion <= 10'd0;
+            personA_Y_Motion <= 10'd0;
         end
-		  /*else if (killed)
-		  begin
-				Ball_X_Motion <= 10'd0;
-				Ball_Y_Motion <= 10'd0;
-		  end*/
         else if (frame_clk_rising_edge)        // Update only at rising edge of frame clock
         begin
-            Ball_X_Pos <= Ball_X_Pos_in;
-            Ball_Y_Pos <= Ball_Y_Pos_in;
-            Ball_X_Motion <= Ball_X_Motion_in;
-            Ball_Y_Motion <= Ball_Y_Motion_in;
+            personA_X_Pos <= personA_X_Pos_in;
+            personA_Y_Pos <= personA_Y_Pos_in;
+            personA_X_Motion <= personA_X_Motion_in;
+            personA_Y_Motion <= personA_Y_Motion_in;
         end
         // By defualt, keep the register values.
-    end
-    
-    // You need to modify always_comb block.
-    always_comb
-    begin
-        // Update the ball's position with its motion
-        Ball_X_Pos_in = Ball_X_Pos + Ball_X_Motion;
-        Ball_Y_Pos_in = Ball_Y_Pos + Ball_Y_Motion;
-    
-        // By default, keep motion unchanged
-		  Ball_X_Motion_in = Ball_X_Motion;
-		  Ball_Y_Motion_in = Ball_Y_Motion;
-		  
-		  if(not_moving_logic)
-		  begin
-				Ball_X_Motion_in = 0;
-				Ball_Y_Motion_in = 0;
-		  end
-		  
-		  if(wander_logic)
-		  begin
-				if(Ball_X_Pos == Ball_X_Max && Ball_Y_Pos < Ball_Y_Max )  // Ball is at the bottom edge, BOUNCE!
-				begin
-					Ball_Y_Motion_in = 1;
-					Ball_X_Motion_in = 0;
-				end
-				else if(Ball_X_Pos > Ball_X_Min && Ball_Y_Pos == Ball_Y_Max)
-				begin
-					Ball_X_Motion_in = (~(Ball_X_Step) + 1'b1);  // 2's complement. 
-					Ball_Y_Motion_in = 0;
-				end
-				else if(Ball_X_Pos == Ball_X_Min && Ball_Y_Pos > Ball_Y_Min)
-				begin
-					Ball_X_Motion_in = 0;
-					Ball_Y_Motion_in = (~(Ball_Y_Step) + 1'b1);
-				end
-				else if(Ball_Y_Pos == Ball_Y_Min && Ball_X_Pos < Ball_X_Max)
-				begin
-					Ball_X_Motion_in = 1;
-					Ball_Y_Motion_in = 0;
-				end
-				
-				
-		  end
-        
     end
     
 endmodule
