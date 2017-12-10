@@ -1,53 +1,23 @@
-//-------------------------------------------------------------------------
-//    Ball.sv                                                            --
-//    Viral Mehta                                                        --
-//    Spring 2005                                                        --
-//                                                                       --
-//    Modified by Stephen Kempf 03-01-2006                               --
-//                              03-12-2007                               --
-//    Translated by Joe Meng    07-07-2013                               --
-//    Modified by Po-Han Huang  10-06-2017                               --
-//    Fall 2017 Distribution                                             --
-//                                                                       --
-//    For use with ECE 385 Lab 8                                         --
-//    UIUC ECE Department                                                --
-//-------------------------------------------------------------------------
-
-
 module  police_car ( input         Clk,                // 50 MHz clock
                              Reset,              // Active-high reset signal
-									  killed,
+									  on_call,
                              frame_clk,          // The clock indicating a new frame (~60Hz)
-               input [9:0]   DrawX, DrawY,       // Current pixel coordinates
-            // Whether current pixel belongs to ball or backgroun
-					input reached,
-					output[9:0]  ballX, ballY,
-					output police_out
+									  police_back,
+					output[9:0]  police_car_X, police_car_Y,
+					output logic police_out, complete, reset_corpse
               );
-    
-    parameter [9:0] Ball_X_Center=676;  // Center position on the X axis
-    parameter [9:0] Ball_Y_Center=450;  // Center position on the Y axis
-    parameter [9:0] Ball_X_Min=100;       // Leftmost point on the X axis
-    parameter [9:0] Ball_X_Max=400;     // Rightmost point on the X axis
-    parameter [9:0] Ball_Y_Min=200;       // Topmost point on the Y axis
-    parameter [9:0] Ball_Y_Max=300;     // Bottommost point on the Y axis
-    parameter [9:0] Ball_X_Step=2;      // Step size on the X axis
-    parameter [9:0] Ball_Y_Step=2;      // Step size on the Y axis
-    parameter [9:0] Ball_Size=4;        // Ball size
-    
-    logic [9:0] Ball_X_Pos, Ball_X_Motion, Ball_Y_Pos, Ball_Y_Motion;
-    logic [9:0] Ball_X_Pos_in, Ball_X_Motion_in, Ball_Y_Pos_in, Ball_Y_Motion_in;
-    
-    /* Since the multiplicants are required to be signed, we have to first cast them
-       from logic to int (signed by default) before they are multiplied. */
-    int DistX, DistY, Size;
-    assign DistX = DrawX - Ball_X_Pos;
-    assign DistY = DrawY - Ball_Y_Pos;
-    assign Size = Ball_Size;
-	 assign ballX = Ball_X_Pos;
-	 assign ballY = Ball_Y_Pos;
-    
-    //////// Do not modify the always_ff blocks. ////////
+
+    parameter [9:0] police_car_X_Step=1;      // Step size on the X axis
+    parameter [9:0] police_car_Y_Step=1;      // Step size on the Y axis
+
+    logic [9:0] police_car_X_Pos, police_car_X_Motion, police_car_Y_Pos, police_car_Y_Motion;
+    logic [9:0] police_car_X_Pos_in, police_car_X_Motion_in;
+	 logic [9:0] police_car_Y_Pos_in, police_car_Y_Motion_in;
+	 
+	 assign police_car_X = police_car_X_Pos;
+	 assign police_car_Y = police_car_Y_Pos;
+
+	 //////// Do not modify the always_ff blocks. ////////
     // Detect rising edge of frame_clk
     logic frame_clk_delayed;
     logic frame_clk_rising_edge;
@@ -60,84 +30,100 @@ module  police_car ( input         Clk,                // 50 MHz clock
     begin
         if (Reset)
         begin
-            Ball_X_Pos <= Ball_X_Center;
-            Ball_Y_Pos <= Ball_Y_Center;
-            Ball_X_Motion <= 10'd0;
-            Ball_Y_Motion <= 10'd0;
+            police_car_X_Pos <= 10'd640;
+            police_car_Y_Pos <= 10'd450;
+            police_car_X_Motion <= 10'd0;
+            police_car_Y_Motion <= 10'd0;
         end
-		  else if(Ball_X_Pos == 320)
-		  begin
-				Ball_X_Motion <= 0;
-				Ball_Y_Motion <= 0;
-		  end
-        else if (frame_clk_rising_edge && killed)        // Update only at rising edge of frame clock
+        else if (frame_clk_rising_edge)        // Update only at rising edge of frame clock
         begin
-            Ball_X_Pos <= Ball_X_Pos_in;
-            Ball_Y_Pos <= Ball_Y_Pos_in;
-            Ball_X_Motion <= Ball_X_Motion_in;
-            Ball_Y_Motion <= Ball_Y_Motion_in;
+            police_car_X_Pos <= police_car_X_Pos_in;
+            police_car_Y_Pos <= police_car_Y_Pos_in;
+            police_car_X_Motion <= police_car_X_Motion_in;
+            police_car_Y_Motion <= police_car_Y_Motion_in;
         end
         // By defualt, keep the register values.
     end
-	 
+
+    //Start of the police_car FSM
+
+	 enum logic [2:0] {Wait, start, arrive, Continue} State, Next_state;
+
+	 always_ff @ (posedge Clk)
+	 begin: Assign_Next_State
+			if(Reset)
+				State <= Wait;
+			else
+				State <= Next_state;
+	 end
+
 	 always_comb
 	 begin
-		police_out = 0;
-		if(killed)
-		begin
-			if(Ball_X_Pos == 10'd320 && reached == 0)
-			begin
-				police_out = 1;
-			end
-			Ball_Y_Motion_in = 0;
-			Ball_X_Motion_in = (~(Ball_X_Step) + 1'b1);
-		end
-		else
-		begin
-			Ball_X_Motion_in = Ball_X_Motion;
-         Ball_Y_Motion_in = Ball_Y_Motion;
-		end
+			Next_state = State;
+
+			unique case(State)
+			Wait:
+				if(on_call)
+					Next_state = start;
+				else
+					Next_state = Wait;
+			start:
+				if(police_car_X_Pos == 10'd320)
+					Next_state = arrive;
+				else
+					Next_state = start;
+			arrive:
+				if(police_back == 1)
+					Next_state = Continue;
+				else
+					Next_state = arrive;
+			Continue:
+				if(police_car_X_Pos == 10'd0)
+					Next_state = Wait;
+				else
+					Next_state = Continue;
+			default:;
+			endcase
 	 end
-    
-    // You need to modify always_comb block.
-    always_comb
-    begin
-        // Update the ball's position with its motion
-		  
-		  Ball_X_Pos_in = Ball_X_Pos + Ball_X_Motion;
-        Ball_Y_Pos_in = Ball_Y_Pos + Ball_Y_Motion;
-    
-        // By default, keep motion unchanged
-        
-        // Be careful when using comparators with "logic" datatype because compiler treats 
-        //   both sides of the operator UNSIGNED numbers. (unless with further type casting)
-        // e.g. Ball_Y_Pos - Ball_Size <= Ball_Y_Min 
-        // If Ball_Y_Pos is 0, then Ball_Y_Pos - Ball_Size will not be -4, but rather a large positive number.
-        /*if( Ball_Y_Pos + Ball_Size >= Ball_Y_Max )  // Ball is at the bottom edge, BOUNCE!
-            Ball_Y_Motion_in = (~(Ball_Y_Step) + 1'b1);  // 2's complement.  
-        else if ( Ball_Y_Pos <= Ball_Y_Min + Ball_Size )  // Ball is at the top edge, BOUNCE!
-            Ball_Y_Motion_in = Ball_Y_Step;*/
-        
-        // TODO: Add other boundary conditions and handle keypress here.
-        
-    /**************************************************************************************
-        ATTENTION! Please answer the following quesiton in your lab report! Points will be allocated for the answers!
-        Hidden Question #2/2:
-          Notice that Ball_Y_Pos is updated using Ball_Y_Motion. 
-          Will the new value of Ball_Y_Motion be used when Ball_Y_Pos is updated, or the old? 
-          What is the difference between writing
-            "Ball_Y_Pos_in = Ball_Y_Pos + Ball_Y_Motion;" and 
-            "Ball_Y_Pos_in = Ball_Y_Pos + Ball_Y_Motion_in;"?
-          How will this impact behavior of the ball during a bounce, and how might that interact with a response to a keypress?
-          Give an answer in your Post-Lab.
-    **************************************************************************************/
-        
-        // Compute whether the pixel corresponds to ball or background
-        
-        /* The ball's (pixelated) circle is generated using the standard circle formula.  Note that while 
-           the single line is quite powerful descriptively, it causes the synthesis tool to use up three
-           of the 12 available multipliers on the chip! */
-        
-    end
-    
+
+	 always_comb
+	 begin
+			complete = 1'b0;
+			police_out = 1'b0;
+			police_car_X_Motion_in = police_car_X_Motion;
+			police_car_Y_Motion_in = police_car_Y_Motion;
+			police_car_X_Pos_in = police_car_X_Pos + police_car_X_Motion;
+			police_car_Y_Pos_in = police_car_Y_Pos + police_car_Y_Motion;
+			reset_corpse = 1'b0;
+			case(State)
+				Wait:
+				begin
+					complete = 1'b1;
+					police_car_X_Motion_in = 1'b0;
+					police_car_Y_Motion_in = 1'b0;
+					police_car_X_Pos_in = 12'd640;
+					police_car_Y_Pos_in = 10'd450;
+				end
+				start:
+				begin
+					complete = 1'b0;
+					police_car_X_Motion_in = (~(police_car_X_Step) + 1'b1);
+				end
+				arrive:
+				begin
+					complete = 1'b0;
+					police_car_X_Motion_in = 0;
+					police_out = 1'b1;
+				end
+				Continue:
+				begin
+					complete = 1'b1;
+					reset_corpse = 1'b1;
+					police_car_X_Motion_in = (~(police_car_X_Step) + 1'b1);
+				end
+			endcase
+		end
+
+
+
 endmodule
