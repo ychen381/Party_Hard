@@ -1,0 +1,6 @@
+module SRAM(input [9:0] DrawX, DrawY, output logic [19:0] ADDR);
+		
+		
+		always_comb
+		begin
+			if(DrawY < 10'd0 || DrawX > 10'd639 || DrawY > 10'd479 || DrawX < 10'd0)
