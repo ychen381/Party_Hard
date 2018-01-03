@@ -3,11 +3,11 @@ module testbench();
 timeunit 10ns;
 timeprecision 1ns;
 
-logic [18:0] read_address;
-logic Clk;
-logic [23:0] data_Out;
+logic Clk, Reset, on_call, frame_clk, police_back;
+logic [9:0] police_car_X, police_car_Y;
+logic police_out, complete, reset_corpse;
 
-police_car_RAM ram0(.*);
+police_car police_car0(.*);
 
 always begin : CLOCK_GENERATION
 #1 Clk = ~Clk;
@@ -18,9 +18,15 @@ initial begin : CLOCK_INITILIAZATION
 end
 
 initial begin : TEST_VECTORS
-	read_address = 19'b0;
+	Reset = 0;
+	on_call = 0;
+	police_back = 0;
 	
-	#10 read_address = 10'd140;
+	#3 Reset = 0;
+	#3 Reset = 0;
+	#10 on_call = 1;
+	#100 police_back = 1;
+	#100 on_call = 0;
 end
 
 endmodule

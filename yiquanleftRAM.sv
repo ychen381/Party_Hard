@@ -13,11 +13,11 @@ module  yiquanleftRAM
 );
 
 // mem has width of 3 bits and a total of 400 addresses
-logic [4:0] mem [0:2399];
+logic [4:0] mem [0:1175];
 
 initial
 begin
-	 $readmemh("C:/Users/Jackliu016/Desktop/lab8/yiquanleft.txt", mem);
+	 $readmemh("yiquanleft.txt", mem);
 end
 
 
